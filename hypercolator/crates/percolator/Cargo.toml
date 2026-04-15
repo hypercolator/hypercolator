@@ -1,0 +1,26 @@
+[package]
+name = "percolator"
+version = "12.17.0"
+edition = "2021"
+description = "Percolator risk engine for perpetual DEX - vendored from aeyakovenko/percolator@719c408"
+license = "Apache-2.0"
+repository = "https://github.com/aeyakovenko/percolator"
+
+# no_std: this library must compile on Solana BPF and native targets.
+# Do not add std-only dependencies.
+[features]
+default = []
+# Enable test-only helpers (test_visible! macro expands to pub)
+test = ["std"]
+# Allow std for host-side tests and CLI tooling
+std = []
+# Stress testing mode
+stress = ["std"]
+
+[dependencies]
+
+[dev-dependencies]
+
+[lib]
+name = "percolator"
+path = "src/lib.rs"

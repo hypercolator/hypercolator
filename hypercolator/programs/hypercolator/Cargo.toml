@@ -1,0 +1,25 @@
+[package]
+name = "hypercolator"
+version = "0.1.0"
+edition = "2021"
+description = "Decentralized perpetual futures DEX on Solana"
+license = "Apache-2.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "hypercolator"
+
+[features]
+no-entrypoint = []
+no-idl = []
+no-log-ix-name = []
+cpi = ["no-entrypoint"]
+default = []
+idl-build = ["anchor-lang/idl-build"]
+
+[dependencies]
+anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
+anchor-spl = { version = "0.30.1", features = ["token"] }
+percolator = { path = "../../crates/percolator", default-features = false }
+
+[dev-dependencies]
