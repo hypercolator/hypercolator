@@ -5,12 +5,14 @@
  * then creates the hypercolator-feature branch on the fork.
  */
 
-import { getInstallationToken } from "./auth.js";
 import { log, warn } from "./logger.js";
 
 const UPSTREAM_OWNER = "aeyakovenko";
 const UPSTREAM_REPO = "percolator";
 const FEATURE_BRANCH = "hypercolator-feature";
+
+const FORK_POLL_INTERVAL_MS = 2000;
+const FORK_POLL_MAX_ATTEMPTS = 15;
 
 function headers(token: string): Record<string, string> {
   return {
@@ -22,8 +24,51 @@ function headers(token: string): Record<string, string> {
   };
 }
 
+async function checkPermissions(
+  token: string,
+  owner: string,
+  repo: string
+): Promise<void> {
+  const res = await fetch(`https://api.github.com/repos/${owner}/${repo}`, {
+    headers: headers(token),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(
+      `Preflight check failed for ${owner}/${repo}: ${res.status} ${body}`
+    );
+  }
+  log(`Preflight OK - can access ${owner}/${repo}`);
+}
+
+async function pollUntilForkReady(
+  token: string,
+  username: string
+): Promise<void> {
+  log("Polling until fork is ready...");
+  for (let attempt = 1; attempt <= FORK_POLL_MAX_ATTEMPTS; attempt++) {
+    await new Promise((r) => setTimeout(r, FORK_POLL_INTERVAL_MS));
+    const res = await fetch(
+      `https://api.github.com/repos/${username}/${UPSTREAM_REPO}`,
+      { headers: headers(token) }
+    );
+    if (res.ok) {
+      const data = (await res.json()) as { full_name: string };
+      log(`Fork ready: ${data.full_name} (attempt ${attempt})`);
+      return;
+    }
+    log(`Fork not ready yet (attempt ${attempt}/${FORK_POLL_MAX_ATTEMPTS})...`);
+  }
+  throw new Error(
+    `Fork did not become ready after ${FORK_POLL_MAX_ATTEMPTS} attempts`
+  );
+}
+
 export async function forkRepo(token: string, username: string): Promise<void> {
   log(`Forking ${UPSTREAM_OWNER}/${UPSTREAM_REPO} into ${username}...`);
+
+  // Preflight: verify we can read the upstream repo
+  await checkPermissions(token, UPSTREAM_OWNER, UPSTREAM_REPO);
 
   const checkRes = await fetch(
     `https://api.github.com/repos/${username}/${UPSTREAM_REPO}`,
@@ -41,7 +86,6 @@ export async function forkRepo(token: string, username: string): Promise<void> {
       method: "POST",
       headers: headers(token),
       body: JSON.stringify({
-        organization: undefined,
         name: UPSTREAM_REPO,
         default_branch_only: false,
       }),
@@ -53,9 +97,8 @@ export async function forkRepo(token: string, username: string): Promise<void> {
     throw new Error(`Fork failed: ${res.status} ${body}`);
   }
 
-  log(`Fork created at github.com/${username}/${UPSTREAM_REPO}`);
-  log("Waiting 8s for fork to be ready...");
-  await new Promise((r) => setTimeout(r, 8000));
+  log(`Fork request accepted for github.com/${username}/${UPSTREAM_REPO}`);
+  await pollUntilForkReady(token, username);
 }
 
 export async function createFeatureBranch(
@@ -75,11 +118,10 @@ export async function createFeatureBranch(
     return;
   }
 
-  // Resolve the actual default branch (could be master, main, or anything else)
-  const repoInfoRes = await fetch(
-    `https://api.github.com/repos/${repoPath}`,
-    { headers: headers(token) }
-  );
+  // Resolve the actual default branch (could be master, main, or anything)
+  const repoInfoRes = await fetch(`https://api.github.com/repos/${repoPath}`, {
+    headers: headers(token),
+  });
 
   if (!repoInfoRes.ok) {
     const body = await repoInfoRes.text();
