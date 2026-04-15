@@ -49,15 +49,9 @@ async function main(): Promise<void> {
   log(
     `Branch: https://github.com/${username}/percolator/tree/hypercolator-feature`
   );
-  if (issueNumber > 0) {
-    log(
-      `Issue: https://github.com/aeyakovenko/percolator/issues/${issueNumber}`
-    );
-  } else {
-    log(
-      "Issue: could not be created automatically - see manual URL logged above"
-    );
-  }
+  log(
+    `Issue: https://github.com/aeyakovenko/percolator/issues/${issueNumber}`
+  );
 }
 
 main().catch((err: Error) => {

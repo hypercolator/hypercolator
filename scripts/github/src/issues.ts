@@ -49,8 +49,6 @@ back to this repo once our research phase is complete.
 Thank you for the excellent work on this codebase.
 `;
 
-const MANUAL_ISSUE_URL = `https://github.com/${UPSTREAM_OWNER}/${UPSTREAM_REPO}/issues/new`;
-
 function headers(token: string): Record<string, string> {
   return {
     Authorization: `Bearer ${token}`,
@@ -105,21 +103,16 @@ export async function openArchitectureIssue(token: string): Promise<number> {
     }
   );
 
-  if (res.status === 403 || res.status === 404) {
-    // Non-fatal: installation token may lack write access to this specific repo.
-    // Upstream issue creation was verified live on public repos, but auth scopes
-    // can vary depending on app installation configuration.
-    warn(
-      `Could not create issue automatically (${res.status}) - please open it manually:`
-    );
-    warn(`  URL: ${MANUAL_ISSUE_URL}`);
-    warn(`  Title: ${ISSUE_TITLE}`);
-    return 0;
-  }
-
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Issue creation failed: ${res.status} ${body}`);
+    const manualUrl = `https://github.com/${UPSTREAM_OWNER}/${UPSTREAM_REPO}/issues/new`;
+    // GitHub App installation tokens can create issues on public repos.
+    // If 403, verify the App has Issues: Read and Write permission in its settings.
+    throw new Error(
+      `Issue creation failed (${res.status}): ${body}\n` +
+        `If you see 403, ensure the GitHub App has Issues: Read and Write permission.\n` +
+        `Manual fallback: ${manualUrl}`
+    );
   }
 
   const data = (await res.json()) as { number: number; html_url: string };
