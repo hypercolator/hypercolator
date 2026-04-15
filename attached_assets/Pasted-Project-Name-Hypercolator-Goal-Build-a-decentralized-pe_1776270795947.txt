@@ -1,0 +1,230 @@
+Project Name: Hypercolator
+
+Goal:
+Build a decentralized perpetual futures exchange on Solana based on Percolator, with permissionless market creation (including pump.fun tokens).
+
+==================================================
+PHASE 0 — RESEARCH (MANDATORY FIRST STEP)
+==================================================
+
+Before writing any code, deeply analyze this repository:
+https://github.com/aeyakovenko/percolator
+
+Tasks:
+1. Read README and project structure
+2. Understand architecture:
+   - Router program (collateral, margin, liquidation)
+   - Slab/matcher program (orderbook + matching)
+3. Understand key systems:
+   - Cross-margin system
+   - Liquidation logic
+   - AMM (x*y=k)
+   - Insurance fund + bad debt handling
+4. Identify:
+   - How markets are created
+   - How matchers are registered
+   - How price is handled
+5. Summarize findings BEFORE coding:
+   - architecture diagram (text)
+   - main modules
+   - limitations (IMPORTANT: repo is educational only)
+
+DO NOT SKIP THIS STEP.
+
+==================================================
+PHASE 1 — FORK & SETUP
+==================================================
+
+1. Fork:
+https://github.com/aeyakovenko/percolator
+
+2. Clone:
+git clone https://github.com/<your-username>/percolator hypercolator
+cd hypercolator
+
+3. Install dependencies:
+- Rust (stable)
+- Solana CLI
+
+4. Build:
+cargo build-sbf
+cargo build --release --bin percolator
+
+5. Run local validator:
+solana-test-validator
+
+6. Deploy:
+./target/release/percolator -n localnet deploy --all
+
+7. Initialize exchange:
+percolator init \
+  --name "Hypercolator" \
+  --insurance-authority <YOUR_PUBKEY>
+
+Verify:
+- CLI works
+- Programs deployed
+- Localnet runs correctly
+
+==================================================
+PHASE 2 — DESIGN EXTENSIONS (HYPERCOLATOR)
+==================================================
+
+Based on your research, design new modules:
+
+1. Permissionless Market Factory
+Function:
+create_market(token_address)
+
+Features:
+- anyone can create market
+- supports pump.fun tokens
+- auto create matcher (slab)
+- register to router
+
+Constraints:
+- require minimum stake (~10 USD)
+- max 3 markets per wallet
+- assign low leverage for unknown tokens
+
+==================================================
+PHASE 3 — IMPLEMENT MARKET FACTORY
+==================================================
+
+Tasks:
+- Add new instruction in Router or new program:
+  create_market()
+
+- Create:
+  - market account struct
+  - validation logic
+  - matcher creation logic
+
+- Integrate with:
+  - router registry
+  - existing matching engine
+
+Output:
+- Rust code (modular, clean)
+- instruction definition
+- account handling
+
+==================================================
+PHASE 4 — PRICE ENGINE (NO ORACLE TOKENS)
+==================================================
+
+Problem:
+Pump.fun tokens have no oracle.
+
+Solution:
+- fetch price from AMM pool
+- implement TWAP (time-weighted average price)
+- add anti-manipulation checks:
+  - minimum liquidity
+  - max deviation
+
+Output:
+- Rust module: price_engine.rs
+- integration with liquidation system
+
+==================================================
+PHASE 5 — MARKET LIFECYCLE SYSTEM
+==================================================
+
+Implement:
+
+1. Activation:
+- market only active if:
+  - volume exists OR
+  - liquidity exists
+
+2. Expiry:
+- disable after 48h inactivity
+
+3. Tier system:
+- Tier A: verified assets
+- Tier B: mid assets
+- Tier C: pump.fun tokens (low leverage)
+
+==================================================
+PHASE 6 — FRONTEND (MVP)
+==================================================
+
+Build simple UI:
+
+Stack:
+- Next.js
+- Solana Wallet Adapter
+
+Features:
+- connect wallet
+- list markets
+- create market (paste token)
+- trade (long/short)
+- orderbook display
+
+==================================================
+PHASE 7 — KEEPER SYSTEM
+==================================================
+
+Run:
+percolator keeper run
+
+Ensure:
+- liquidations work
+- funding updates working
+
+==================================================
+PHASE 8 — GITHUB WORKFLOW & CONTRIBUTION
+==================================================
+
+IMPORTANT: Must contribute back to original repo.
+
+1. Keep fork synced with upstream:
+git remote add upstream https://github.com/aeyakovenko/percolator
+git fetch upstream
+
+2. Create branch:
+git checkout -b hypercolator-feature
+
+3. Commit clean:
+git commit -m "feat: improve market creation flow"
+
+4. Run tests:
+cargo test --lib
+cargo fmt
+
+5. Push:
+git push origin hypercolator-feature
+
+6. Open Pull Request to upstream repo
+
+Contribution rules:
+- DO NOT push huge breaking changes
+- Focus on:
+  - documentation improvements
+  - modular extensions
+  - examples for developers
+
+==================================================
+PHASE 9 — OUTPUT
+==================================================
+
+Provide:
+- architecture summary
+- working local deployment
+- create_market implementation
+- price engine
+- frontend MVP
+- GitHub repo (Hypercolator)
+- at least 1 valid PR to upstream
+
+==================================================
+IMPORTANT PRINCIPLES
+==================================================
+
+- Understand before building
+- Keep system permissionless but safe
+- Avoid spam markets
+- Build MVP first
+- Keep code clean and modular
