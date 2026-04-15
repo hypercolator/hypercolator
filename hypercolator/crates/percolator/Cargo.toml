@@ -23,4 +23,4 @@ stress = ["std"]
 
 [lib]
 name = "percolator"
-path = "src/lib.rs"
+path = "src/percolator.rs"

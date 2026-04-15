@@ -31,13 +31,34 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
 Decentralized perpetual futures DEX on Solana. Permissionless market creation for any token including pump.fun tokens. Self-funded insurance model via trading fees. Based on the Percolator risk engine by Anatoly Yakovenko.
 
 Key directories:
-- `hypercolator/` - Anchor/Solana program workspace
-- `hypercolator/programs/hypercolator/` - main on-chain program
-- `hypercolator/crates/percolator/` - vendored Percolator risk engine library
+- `hypercolator/` - Anchor/Solana program workspace (Task #10 complete)
+- `hypercolator/programs/hypercolator/` - main on-chain program (stub, Tasks #11-13)
+- `hypercolator/crates/percolator/` - vendored Percolator risk engine (pinned 719c408)
 - `scripts/github/` - GitHub App automation (fork, issue, PR)
-- `scripts/keeper/` - keeper bot (TWAP crank, liquidations, expiry)
 - `docs/percolator-architecture.md` - architecture reference doc
 - `PLAN.md` - master project plan
+
+## GitHub Org: hypercolator
+
+- `github.com/hypercolator/hypercolator` - Anchor program (Rust) - LIVE
+- `github.com/hypercolator/app` - Next.js frontend - placeholder
+- `github.com/hypercolator/sdk` - TypeScript SDK - placeholder
+- `github.com/hypercolator/bot` - Keeper bot - placeholder
+
+GitHub App: `hypercolator-bot` (id: 3390456)
+- Org installation ID: `124267092` (env: GITHUB_APP_ORG_INSTALLATION_ID)
+- User installation ID: `124264528` (env: GITHUB_APP_USER_INSTALLATION_ID)
+
+## Solana Toolchain (Task #10 complete)
+
+- Rust: 1.88.0
+- Solana CLI: 1.18.26 (at `~/.local/share/solana/install/active_release/bin/`)
+- Anchor CLI: 0.30.1 (at `~/.local/bin/anchor`, symlinked from npm cache)
+- `cargo test --lib`: 49/49 pass (percolator crate)
+- `cargo fmt --check`: pass
+
+PATH required for Solana/Anchor commands:
+`export PATH="$HOME/.local/bin:/home/runner/.local/share/solana/install/active_release/bin:$PATH"`
 
 ## Permanent Rules (NEVER break these)
 

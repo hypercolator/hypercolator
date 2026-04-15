@@ -1,0 +1,17 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Anchor build output
+.anchor/
+dist/
+
+# Solana keypairs (never commit)
+**/*.json
+!Anchor.toml
+
+# Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp

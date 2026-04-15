@@ -51,7 +51,7 @@ impl MarketState {
         + 1   // initialized
         + 1   // bump
         + 8   // created_at_slot
-        + 4;  // Vec<u8> length prefix
+        + 4; // Vec<u8> length prefix
 
     /// Space for a market with the given engine data size.
     pub fn space(engine_data_size: usize) -> usize {
@@ -102,7 +102,7 @@ impl TwapState {
         + 8   // last_update_slot
         + 8   // min_observation_slots
         + 16  // window_start_cumulative
-        + 8;  // window_start_slot
+        + 8; // window_start_slot
 
     /// Compute the TWAP over the current observation window.
     ///
