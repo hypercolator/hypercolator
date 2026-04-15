@@ -21,5 +21,25 @@ idl-build = ["anchor-lang/idl-build"]
 anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
 anchor-spl = { version = "0.30.1", features = ["token"] }
 percolator = { path = "../../crates/percolator", default-features = false }
+# ---- Solana BPF toolchain compatibility constraints ----
+# The Solana BPF toolchain ships Rust 1.75 (platform-tools v1.41).
+# Cargo 1.75 cannot parse Cargo.toml with edition = "2024", and it enforces
+# rust-version / MSRV constraints.  Anything in the transitive dep graph that
+# has moved to edition 2024 or requires Rust > 1.75 must be pinned here.
+blake3 = ">=1.0.0, <1.8.0"          # 1.8.0+ requires edition 2024
+proc-macro-crate = ">=3.0.0, <3.4.0" # 3.4.0+ pulls toml_edit 0.23 -> toml_parser (edition 2024)
+indexmap = ">=2.0.0, <2.12.0"       # 2.13+ requires rust-version 1.82
+borsh = ">=1.0.0, <1.6.0"           # 1.6.0 uses core::net::IpAddr (stable only in Rust 1.77)
+unicode-segmentation = ">=1.0.0, <1.13.0" # 1.13.2 requires rust-version 1.85
+rayon = ">=1.0.0, <1.11.0"          # 1.11.0+ requires rust-version 1.80
+rayon-core = ">=1.0.0, <1.13.0"    # 1.13.0 requires rust-version 1.80
+wasm-bindgen = ">=0.2.0, <0.2.118"  # 0.2.118 requires rust-version 1.77 (WASM-only anyway)
+js-sys = ">=0.3.0, <0.3.95"         # 0.3.95 requires rust-version 1.77 (WASM-only anyway)
+web-sys = ">=0.3.0, <0.3.95"        # 0.3.95 requires rust-version 1.77 (WASM-only anyway)
+# getrandom 0.3.x introduces wasip2 -> wit-bindgen 0.51 (edition = "2024"), which
+# cargo 1.75 cannot parse at all (even when --ignore-rust-version is set).
+getrandom = ">=0.1.0, <0.3.0"
+# jobserver 0.1.33+ adds getrandom ^0.3 (windows only) pulling in wasip2/wit-bindgen
+jobserver = ">=0.1.0, <0.1.33"
 
 [dev-dependencies]

@@ -5,6 +5,14 @@ members = [
 ]
 resolver = "2"
 
+# ---- Local vendor patches ----
+# wasm-bindgen 0.2.117's js_panic() calls std::panic::panic_any which is
+# not available in the Solana SBF target's std.  The patch restricts
+# panic_any to target_arch = "wasm32" and falls back to core::panic! on all
+# other targets (including sbf-solana-solana).
+[patch.crates-io]
+wasm-bindgen = { path = "vendor/wasm-bindgen" }
+
 [profile.release]
 overflow-checks = true
 lto = "fat"
