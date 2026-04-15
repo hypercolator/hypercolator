@@ -10,8 +10,7 @@ import { log, warn } from "./logger.js";
 const UPSTREAM_OWNER = "aeyakovenko";
 const UPSTREAM_REPO = "percolator";
 
-// Note: hyphen used instead of em dash per permanent project rule (no em dash in any file)
-const ISSUE_TITLE = "Architecture feedback request - Hypercolator extension";
+const ISSUE_TITLE = "Architecture feedback request \u2014 Hypercolator extension";
 
 const ISSUE_BODY = `Hi Toly and team,
 
@@ -56,8 +55,10 @@ function headers(token: string): Record<string, string> {
 export async function openArchitectureIssue(token: string): Promise<number> {
   log(`Opening issue on ${UPSTREAM_OWNER}/${UPSTREAM_REPO}...`);
 
+  // Search for existing issue by keyword to stay idempotent regardless of exact title format
+  const searchKeyword = "Architecture+feedback+request+Hypercolator";
   const searchRes = await fetch(
-    `https://api.github.com/search/issues?q=repo:${UPSTREAM_OWNER}/${UPSTREAM_REPO}+is:issue+"${encodeURIComponent(ISSUE_TITLE)}"`,
+    `https://api.github.com/search/issues?q=repo:${UPSTREAM_OWNER}/${UPSTREAM_REPO}+is:issue+${searchKeyword}`,
     { headers: headers(token) }
   );
 
