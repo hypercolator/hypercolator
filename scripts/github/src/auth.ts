@@ -93,9 +93,8 @@ export async function getInstallationToken(): Promise<string> {
 
 if (process.argv[1] && process.argv[1].endsWith("auth.ts")) {
   getInstallationToken()
-    .then((tok) => {
-      log(`Token starts with: ${tok.slice(0, 12)}...`);
-      log("Auth OK");
+    .then(() => {
+      log("Auth OK - installation token obtained successfully");
     })
     .catch((err: Error) => {
       console.error(err.message);

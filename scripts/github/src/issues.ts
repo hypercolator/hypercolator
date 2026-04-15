@@ -10,6 +10,7 @@ import { log, warn } from "./logger.js";
 const UPSTREAM_OWNER = "aeyakovenko";
 const UPSTREAM_REPO = "percolator";
 
+// Note: hyphen used instead of em dash per permanent project rule (no em dash in any file)
 const ISSUE_TITLE = "Architecture feedback request - Hypercolator extension";
 
 const ISSUE_BODY = `Hi Toly and team,
@@ -84,7 +85,8 @@ export async function openArchitectureIssue(token: string): Promise<number> {
       body: JSON.stringify({
         title: ISSUE_TITLE,
         body: ISSUE_BODY,
-        labels: ["question", "documentation"],
+        // No labels - upstream repo may not have these labels and GitHub
+        // returns 422 if a label does not exist, causing unnecessary failure
       }),
     }
   );
