@@ -131,6 +131,8 @@ pub struct CreateMarket<'info> {
     pub creator_record: Account<'info, CreatorRecord>,
 
     pub system_program: Program<'info, System>,
+    /// Validates that token_mint is an SPL token mint; unused in CPI but
+    /// retained to keep IDL consistent with the compiled .so.
     pub token_program: Program<'info, Token>,
 }
 
