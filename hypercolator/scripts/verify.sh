@@ -26,6 +26,9 @@ cargo test --lib --manifest-path "$REPO_ROOT/Cargo.toml" 2>&1 | tail -5
 
 echo ""
 echo "--- Formatting ---"
+# NOTE: plain 'cargo fmt --check' fails in this environment because the default
+# nix-rust toolchain does not include cargo-fmt.  scripts/fmt.sh uses
+# 'cargo +nix-rust-full fmt' which is the correct CI entry point.
 "$SCRIPT_DIR/fmt.sh"
 
 echo ""
