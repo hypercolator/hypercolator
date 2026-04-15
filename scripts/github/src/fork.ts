@@ -75,19 +75,38 @@ export async function createFeatureBranch(
     return;
   }
 
-  const masterRes = await fetch(
-    `https://api.github.com/repos/${repoPath}/git/refs/heads/master`,
+  // Resolve the actual default branch (could be master, main, or anything else)
+  const repoInfoRes = await fetch(
+    `https://api.github.com/repos/${repoPath}`,
     { headers: headers(token) }
   );
 
-  if (!masterRes.ok) {
-    const body = await masterRes.text();
-    throw new Error(`Could not get master ref: ${masterRes.status} ${body}`);
+  if (!repoInfoRes.ok) {
+    const body = await repoInfoRes.text();
+    throw new Error(`Could not get repo info: ${repoInfoRes.status} ${body}`);
   }
 
-  const masterData = (await masterRes.json()) as { object: { sha: string } };
-  const sha = masterData.object.sha;
-  log(`Master SHA: ${sha}`);
+  const repoInfo = (await repoInfoRes.json()) as { default_branch: string };
+  const defaultBranch = repoInfo.default_branch;
+  log(`Default branch: ${defaultBranch}`);
+
+  const defaultBranchRes = await fetch(
+    `https://api.github.com/repos/${repoPath}/git/refs/heads/${defaultBranch}`,
+    { headers: headers(token) }
+  );
+
+  if (!defaultBranchRes.ok) {
+    const body = await defaultBranchRes.text();
+    throw new Error(
+      `Could not get ${defaultBranch} ref: ${defaultBranchRes.status} ${body}`
+    );
+  }
+
+  const defaultBranchData = (await defaultBranchRes.json()) as {
+    object: { sha: string };
+  };
+  const sha = defaultBranchData.object.sha;
+  log(`${defaultBranch} SHA: ${sha}`);
 
   const createRes = await fetch(
     `https://api.github.com/repos/${repoPath}/git/refs`,
