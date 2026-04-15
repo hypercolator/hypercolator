@@ -48,3 +48,5 @@ Key directories:
 3. **Never add back button or home button to any UI.** Navigation is handled by the app shell or browser. Do not add explicit "Back" or "Home" buttons to any page or component.
 
 4. **404 pages must be user-friendly, not developer-facing.** No stack traces, no error codes, no technical jargon. Show a clear human message and a helpful action (e.g. search, or a link to the main page). Style it consistently with the rest of the app.
+
+5. **Never use the word "gitslop" anywhere.** Not in commit messages, code comments, UI text, docs, PR descriptions, issue bodies, or any other project file. It is permanently banned from all output.
