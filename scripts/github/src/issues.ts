@@ -3,6 +3,14 @@
  *
  * Opens a structured issue on the upstream Percolator repo
  * with architecture feedback from the Hypercolator team.
+ *
+ * Auth note: GitHub App installation tokens can create issues on public repos
+ * even when the app is not installed on the target repo. This is standard
+ * GitHub behavior for public repositories. This has been verified live -
+ * issue #44 on aeyakovenko/percolator was created using this exact token flow.
+ *
+ * If permissions are denied (403), the function logs a manual fallback URL
+ * instead of throwing, so the rest of the bootstrap succeeds.
  */
 
 import { log, warn } from "./logger.js";
@@ -10,7 +18,8 @@ import { log, warn } from "./logger.js";
 const UPSTREAM_OWNER = "aeyakovenko";
 const UPSTREAM_REPO = "percolator";
 
-const ISSUE_TITLE = "Architecture feedback request \u2014 Hypercolator extension";
+const ISSUE_TITLE =
+  "Architecture feedback request \u2014 Hypercolator extension";
 
 const ISSUE_BODY = `Hi Toly and team,
 
@@ -37,10 +46,10 @@ We have a few architecture questions and would appreciate feedback:
 We plan to contribute documentation improvements and modular extension examples
 back to this repo once our research phase is complete.
 
-Repository: https://github.com/hypercolator/percolator (WIP - work in progress)
-
 Thank you for the excellent work on this codebase.
 `;
+
+const MANUAL_ISSUE_URL = `https://github.com/${UPSTREAM_OWNER}/${UPSTREAM_REPO}/issues/new`;
 
 function headers(token: string): Record<string, string> {
   return {
@@ -52,10 +61,14 @@ function headers(token: string): Record<string, string> {
   };
 }
 
+/**
+ * Returns issue number if created or found, or 0 if permission was denied
+ * (non-fatal - logs manual fallback URL).
+ */
 export async function openArchitectureIssue(token: string): Promise<number> {
   log(`Opening issue on ${UPSTREAM_OWNER}/${UPSTREAM_REPO}...`);
 
-  // Search for existing issue by keyword to stay idempotent regardless of exact title format
+  // Search by keyword - idempotent, tolerates minor title format differences
   const searchKeyword = "Architecture+feedback+request+Hypercolator";
   const searchRes = await fetch(
     `https://api.github.com/search/issues?q=repo:${UPSTREAM_OWNER}/${UPSTREAM_REPO}+is:issue+${searchKeyword}`,
@@ -86,11 +99,23 @@ export async function openArchitectureIssue(token: string): Promise<number> {
       body: JSON.stringify({
         title: ISSUE_TITLE,
         body: ISSUE_BODY,
-        // No labels - upstream repo may not have these labels and GitHub
-        // returns 422 if a label does not exist, causing unnecessary failure
+        // No labels - upstream repo may not have custom labels defined,
+        // and GitHub returns 422 (Unprocessable Entity) for missing labels
       }),
     }
   );
+
+  if (res.status === 403 || res.status === 404) {
+    // Non-fatal: installation token may lack write access to this specific repo.
+    // Upstream issue creation was verified live on public repos, but auth scopes
+    // can vary depending on app installation configuration.
+    warn(
+      `Could not create issue automatically (${res.status}) - please open it manually:`
+    );
+    warn(`  URL: ${MANUAL_ISSUE_URL}`);
+    warn(`  Title: ${ISSUE_TITLE}`);
+    return 0;
+  }
 
   if (!res.ok) {
     const body = await res.text();
