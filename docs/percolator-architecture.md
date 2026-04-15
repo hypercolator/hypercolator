@@ -1,8 +1,19 @@
 # Percolator Architecture — Research Reference
 
-**Source:** aeyakovenko/percolator @ master  
+**Source:** aeyakovenko/percolator  
+**Pinned commit:** `719c408fc4fb3f8388f29b41643abda09523a8d0` (2026-04-14)  
 **Spec version:** v12.17.0  
 **Purpose:** Reference document for Hypercolator's Anchor implementation
+
+Permalinks to source files at the pinned commit:
+
+- spec: https://github.com/aeyakovenko/percolator/blob/719c408fc4fb3f8388f29b41643abda09523a8d0/spec.md
+- percolator.rs: https://github.com/aeyakovenko/percolator/blob/719c408fc4fb3f8388f29b41643abda09523a8d0/src/percolator.rs
+- i128.rs: https://github.com/aeyakovenko/percolator/blob/719c408fc4fb3f8388f29b41643abda09523a8d0/src/i128.rs
+- wide_math.rs: https://github.com/aeyakovenko/percolator/blob/719c408fc4fb3f8388f29b41643abda09523a8d0/src/wide_math.rs
+- unit_tests.rs: https://github.com/aeyakovenko/percolator/blob/719c408fc4fb3f8388f29b41643abda09523a8d0/tests/unit_tests.rs
+
+> If upstream diverges from this commit, re-validate all constants, API signatures, and struct layouts against the new spec before using this document as implementation ground truth.
 
 ---
 
