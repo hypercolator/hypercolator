@@ -12,7 +12,7 @@ pub enum HypercolatorError {
     #[msg("A market already exists for this token mint")]
     MarketAlreadyExists,
 
-    #[msg("Market registry is full (maximum 1024 markets reached)")]
+    #[msg("Market registry is full (maximum 256 markets reached)")]
     RegistryFull,
 
     // ---- Oracle / Price Engine (Task #12) ----

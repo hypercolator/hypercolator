@@ -288,10 +288,11 @@ fn test_account_space_creator_record() {
 
 #[test]
 fn test_account_space_registry_at_cap() {
-    // 8 discrim + 1 bump + 4 market_count + 4 Vec prefix + 32*1024 markets
-    // = 17 + 32768 = 32785
+    // 8 discrim + 1 bump + 4 market_count + 4 Vec prefix + 32*256 markets
+    // = 17 + 8192 = 8209
+    // (256 chosen so space < 10240: Solana 1.14+ CPI data-increase limit)
     let space = MarketRegistry::space(MAX_REGISTRY_MARKETS);
-    assert_eq!(space, 32_785, "registry space must be 32785 at max capacity");
+    assert_eq!(space, 8_209, "registry space must be 8209 at max capacity (256 markets)");
 }
 
 // ---------------------------------------------------------------------------
@@ -303,7 +304,7 @@ fn test_protocol_constants() {
     assert_eq!(MIN_STAKE_LAMPORTS, 1_000_000, "0.001 SOL stake minimum");
     assert_eq!(MAX_MARKETS_PER_CREATOR, 3, "max 3 markets per wallet");
     assert_eq!(TRADING_FEE_BPS, 8, "0.08% insurance fee");
-    assert_eq!(MAX_REGISTRY_MARKETS, 1_024, "registry cap 1024 markets");
+    assert_eq!(MAX_REGISTRY_MARKETS, 256, "registry cap 256 markets");
 }
 
 // ---------------------------------------------------------------------------
