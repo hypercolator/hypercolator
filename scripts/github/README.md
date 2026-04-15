@@ -70,6 +70,14 @@ This will:
 
 All steps are idempotent - safe to run multiple times.
 
+### Note on issue creation permissions
+
+Step 4 opens an issue on `aeyakovenko/percolator` using the installation token.
+Cross-repo write access depends on the GitHub App's installation scope and
+the target repository's policy. If step 4 fails with a 403 error, the error
+message includes a manual URL to open the issue from your browser instead.
+Ensure the App has `Issues: Read and Write` permission in its installation settings.
+
 ## Module reference
 
 - `auth.ts` - JWT generation and installation token exchange

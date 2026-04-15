@@ -4,15 +4,10 @@
  * Opens a structured issue on the upstream Percolator repo
  * with architecture feedback from the Hypercolator team.
  *
- * Auth note: GitHub App installation tokens can create issues on any public
- * repository, not just repositories where the App is installed. The GitHub
- * API treats issue creation on public repos as a user action bound by the
- * Installation token's granted permissions (Issues: Read and Write).
- * This is confirmed by GitHub documentation and verified live - issue #44
- * on aeyakovenko/percolator was successfully created with this token flow.
- *
- * If creation fails, the function throws with an actionable error message
- * including the manual fallback URL.
+ * If issue creation fails, the function throws with an actionable error
+ * message that includes the manual fallback URL and permission guidance.
+ * Cross-repo write access with installation tokens depends on the App's
+ * installation scope and the target repo's visibility and policies.
  */
 
 import { log, warn } from "./logger.js";
