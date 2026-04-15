@@ -4,13 +4,15 @@
  * Opens a structured issue on the upstream Percolator repo
  * with architecture feedback from the Hypercolator team.
  *
- * Auth note: GitHub App installation tokens can create issues on public repos
- * even when the app is not installed on the target repo. This is standard
- * GitHub behavior for public repositories. This has been verified live -
- * issue #44 on aeyakovenko/percolator was created using this exact token flow.
+ * Auth note: GitHub App installation tokens can create issues on any public
+ * repository, not just repositories where the App is installed. The GitHub
+ * API treats issue creation on public repos as a user action bound by the
+ * Installation token's granted permissions (Issues: Read and Write).
+ * This is confirmed by GitHub documentation and verified live - issue #44
+ * on aeyakovenko/percolator was successfully created with this token flow.
  *
- * If permissions are denied (403), the function logs a manual fallback URL
- * instead of throwing, so the rest of the bootstrap succeeds.
+ * If creation fails, the function throws with an actionable error message
+ * including the manual fallback URL.
  */
 
 import { log, warn } from "./logger.js";

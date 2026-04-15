@@ -1,0 +1,23 @@
+
+> @workspace/github@0.0.0 run /home/runner/workspace/scripts/github
+> tsx ./src/run.ts
+
+[hypercolator-github] === Hypercolator GitHub Bootstrap ===
+[hypercolator-github] Target user: codes-son
+[hypercolator-github] Step 1: Authenticating via GitHub App...
+[hypercolator-github] Generated GitHub App JWT
+[hypercolator-github] Installation token obtained - expires at 2026-04-15T19:57:48Z
+[hypercolator-github] Step 2: Forking aeyakovenko/percolator...
+[hypercolator-github] Forking aeyakovenko/percolator into codes-son...
+[hypercolator-github] Preflight OK - can access aeyakovenko/percolator
+[hypercolator-github] WARN Fork codes-son/percolator already exists - skipping fork
+[hypercolator-github] Step 3: Creating hypercolator-feature branch...
+[hypercolator-github] Creating branch hypercolator-feature on codes-son/percolator...
+[hypercolator-github] WARN Branch hypercolator-feature already exists - skipping
+[hypercolator-github] Step 4: Opening architecture feedback issue on upstream repo...
+[hypercolator-github] Opening issue on aeyakovenko/percolator...
+[hypercolator-github] WARN Issue already exists: #44 "Architecture feedback request - Hypercolator extension" - skipping
+[hypercolator-github] === Bootstrap Complete ===
+[hypercolator-github] Fork: https://github.com/codes-son/percolator
+[hypercolator-github] Branch: https://github.com/codes-son/percolator/tree/hypercolator-feature
+[hypercolator-github] Issue: https://github.com/aeyakovenko/percolator/issues/44
