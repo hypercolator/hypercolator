@@ -16,8 +16,11 @@ pub const MAX_MARKETS_PER_CREATOR: u8 = 3;
 pub const TRADING_FEE_BPS: u16 = 8;
 
 /// Maximum number of markets tracked in the global registry PDA.
-/// At 32 bytes/Pubkey this is ~32 KiB — well within the 10 MB account cap.
-pub const MAX_REGISTRY_MARKETS: u32 = 1_024;
+/// 256 entries → space = 8 + 1 + 4 + 4 + 32*256 = 8209 bytes, safely under
+/// the 10240-byte per-instruction CPI data-increase limit imposed by Solana
+/// 1.14+ (a larger registry can be migrated via a grow-registry instruction
+/// in a later task).
+pub const MAX_REGISTRY_MARKETS: u32 = 256;
 
 // ---------------------------------------------------------------------------
 // Market tier

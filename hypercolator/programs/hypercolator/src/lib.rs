@@ -290,8 +290,8 @@ mod tests {
 
     #[test]
     fn registry_space_at_capacity() {
-        // 8 + 1 + 4 + 4 + 32*1024 = 17 + 32768 = 32785
+        // 8 + 1 + 4 + 4 + 32*256 = 17 + 8192 = 8209
         let space = MarketRegistry::space(MAX_REGISTRY_MARKETS);
-        assert_eq!(space, 32785);
+        assert_eq!(space, 8209);
     }
 }

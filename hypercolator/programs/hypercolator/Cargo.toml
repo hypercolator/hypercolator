@@ -43,3 +43,7 @@ getrandom = ">=0.1.0, <0.3.0"
 jobserver = ">=0.1.0, <0.1.33"
 
 [dev-dependencies]
+solana-program-test = "=1.18.26"
+solana-sdk = "=1.18.26"
+spl-token = { version = "=4.0.0", features = ["no-entrypoint"] }
+tokio = { version = "1", features = ["full"] }
