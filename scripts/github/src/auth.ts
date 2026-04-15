@@ -54,7 +54,19 @@ export async function getInstallationToken(): Promise<string> {
     );
   }
 
-  const pemKey = privateKey.replace(/\\n/g, "\n");
+  // Normalize PEM: handle literal \n sequences, Windows line endings,
+  // and ensure proper PEM block structure
+  let pemKey = privateKey
+    .replace(/\\n/g, "\n")
+    .replace(/\r\n/g, "\n")
+    .trim();
+
+  // If the PEM header/footer are on the same line as content, split them
+  if (!pemKey.includes("\n")) {
+    pemKey = pemKey
+      .replace(/(-----BEGIN [^-]+-----)/g, "$1\n")
+      .replace(/(-----END [^-]+-----)/g, "\n$1");
+  }
   const jwt = buildJwt(appId, pemKey);
   log("Generated GitHub App JWT");
 
