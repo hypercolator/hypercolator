@@ -169,7 +169,7 @@ impl MarketConfig {
 /// Global singleton PDA listing all MarketConfig addresses.
 ///
 /// Initialised on the first `create_market` call.  Subsequent calls append
-/// to `markets`.  The list is bounded by `MAX_REGISTRY_MARKETS` (1 024).
+/// to `markets`.  Bounded by `MAX_REGISTRY_MARKETS` (256).
 #[account]
 #[derive(Debug)]
 pub struct MarketRegistry {
@@ -258,17 +258,29 @@ impl MarketState {
     }
 }
 
-/// AMM observation for on-chain TWAP pricing (Task #12).
+/// AMM TWAP accumulator for a market, PDA seeds = [b"twap", market_config].
+///
+/// The keeper calls `update_twap` every slot, passing current AMM reserves.
+/// Price is stored in Q32 fixed-point (units of quote-per-base, scaled 2^32).
+/// TWAP is computed over the most recent `min_observation_slots` window.
 #[account]
 #[derive(Debug)]
 pub struct TwapState {
+    /// The MarketConfig PDA this accumulator belongs to.
     pub market: Pubkey,
+    /// PDA bump seed.
     pub bump: u8,
-    pub sqrt_price_x32: u64,
+    /// Last observed spot price in Q32 (price = reserve_b / reserve_a * 2^32).
+    pub last_spot_q32: u64,
+    /// Cumulative sum of (spot_q32 * elapsed_slots) since initialisation.
     pub cumulative_price: u128,
+    /// Solana slot of the most recent `update_twap` call.
     pub last_update_slot: u64,
+    /// Minimum window length (slots) required before TWAP is considered valid.
     pub min_observation_slots: u64,
+    /// Cumulative price snapshot at the start of the current TWAP window.
     pub window_start_cumulative: u128,
+    /// Slot at which the current TWAP window began.
     pub window_start_slot: u64,
 }
 
@@ -276,25 +288,24 @@ impl TwapState {
     pub const SPACE: usize = 8
         + 32  // market
         + 1   // bump
-        + 8   // sqrt_price_x32
+        + 8   // last_spot_q32
         + 16  // cumulative_price
         + 8   // last_update_slot
         + 8   // min_observation_slots
         + 16  // window_start_cumulative
-        + 8; // window_start_slot
+        + 8;  // window_start_slot
 
+    /// Compute the time-weighted average price over the current window.
+    ///
+    /// Returns `None` if fewer than `min_observation_slots` have elapsed
+    /// since the window started (TWAP not yet warmed up).
     pub fn twap(&self, now_slot: u64) -> Option<u64> {
         let elapsed = now_slot.saturating_sub(self.window_start_slot);
         if elapsed < self.min_observation_slots {
             return None;
         }
-        let delta = self
-            .cumulative_price
-            .saturating_sub(self.window_start_cumulative);
+        let delta = self.cumulative_price.saturating_sub(self.window_start_cumulative);
         let twap = delta.checked_div(elapsed as u128)?;
-        if twap > u64::MAX as u128 {
-            return None;
-        }
-        Some(twap as u64)
+        u64::try_from(twap).ok()
     }
 }

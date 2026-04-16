@@ -16,11 +16,17 @@ pub enum HypercolatorError {
     RegistryFull,
 
     // ---- Oracle / Price Engine (Task #12) ----
-    #[msg("Invalid oracle price: must be in range (0, MAX_ORACLE_PRICE]")]
+    #[msg("Invalid oracle price: reserve_a is zero or result overflows")]
     InvalidOraclePrice,
 
-    #[msg("TWAP observation window too short - price manipulation risk")]
+    #[msg("TWAP observation window too short — price manipulation risk")]
     TwapWindowTooShort,
+
+    #[msg("Spot price deviates from TWAP by more than 20%")]
+    PriceDeviationTooHigh,
+
+    #[msg("AMM pool liquidity is below the minimum required threshold")]
+    InsufficientLiquidity,
 
     // ---- Margin / Risk Engine ----
     #[msg("Invalid margin configuration: maintenance must be <= initial")]
