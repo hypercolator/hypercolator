@@ -20,15 +20,24 @@ pub fn spot_price_q32(reserve_a: u64, reserve_b: u64) -> Option<u64> {
     u64::try_from(price).ok()
 }
 
-/// Returns `true` when |spot - twap| / twap <= MAX_DEVIATION_BPS / 10_000.
+/// Returns `true` when the spot price does not exceed the TWAP by more than
+/// MAX_DEVIATION_BPS / 10_000 (20%).
 ///
-/// Uses integer arithmetic to avoid rounding errors:
-///   diff * 10_000 <= twap * MAX_DEVIATION_BPS
+/// Only upward deviations are rejected: a crash in spot price should still
+/// allow liquidation (price is real, not manipulated).  A spike above TWAP
+/// indicates a pump attack and must be rejected to protect traders.
+///
+/// Uses integer arithmetic: spot <= twap * (10_000 + MAX_DEVIATION_BPS) / 10_000
+///   ⟺ spot * 10_000 <= twap * (10_000 + MAX_DEVIATION_BPS)
 pub fn within_deviation(spot_q32: u64, twap_q32: u64) -> bool {
     if twap_q32 == 0 {
         return false;
     }
-    let diff = spot_q32.abs_diff(twap_q32);
+    // spot <= twap: no upward deviation at all
+    if spot_q32 <= twap_q32 {
+        return true;
+    }
+    let diff = spot_q32 - twap_q32;
     (diff as u128) * 10_000 <= (twap_q32 as u128) * (MAX_DEVIATION_BPS as u128)
 }
 
@@ -89,10 +98,12 @@ mod tests {
     }
 
     #[test]
-    fn deviation_negative_direction_rejected() {
+    fn deviation_downward_always_allowed() {
+        // Sharp downward move: liquidation should still be permitted.
         let twap: u64 = 1_000_000;
-        let spot: u64 = 799_999; // -20.0001%
-        assert!(!within_deviation(spot, twap));
+        assert!(within_deviation(0, twap));
+        assert!(within_deviation(1, twap));
+        assert!(within_deviation(twap - 1, twap));
     }
 
     #[test]

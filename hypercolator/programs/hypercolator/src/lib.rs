@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token};
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -87,18 +87,20 @@ pub mod hypercolator {
         Ok(())
     }
 
-    /// Accept the latest AMM reserves from a keeper and advance the TWAP accumulator.
+    /// Advance the TWAP accumulator by reading reserve balances from on-chain
+    /// SPL Token vault accounts.
     ///
-    /// The keeper reads `reserve_a` (base token) and `reserve_b` (quote token)
-    /// from the AMM pool off-chain and passes them as arguments each slot.
-    /// On the first call the TwapState PDA is initialised; subsequent calls
-    /// accumulate `last_spot_q32 * elapsed_slots` into `cumulative_price` and
-    /// slide the observation window when it exceeds `TWAP_WINDOW_SLOTS`.
-    pub fn update_twap(
-        ctx: Context<UpdateTwap>,
-        reserve_a: u64,
-        reserve_b: u64,
-    ) -> Result<()> {
+    /// The keeper passes the two AMM vault `TokenAccount`s each slot. On the
+    /// first call the vault pubkeys are written into `TwapState` and the
+    /// base-vault mint is verified against the market's token mint, binding
+    /// this accumulator to that specific pool for all future calls.
+    ///
+    /// Subsequent calls enforce that the same vault accounts are used, making
+    /// vault substitution attacks impossible regardless of keeper behaviour.
+    pub fn update_twap(ctx: Context<UpdateTwap>) -> Result<()> {
+        let reserve_a = ctx.accounts.vault_base.amount;
+        let reserve_b = ctx.accounts.vault_quote.amount;
+
         require!(
             price_engine::sufficient_liquidity(reserve_a, reserve_b),
             HypercolatorError::InsufficientLiquidity
@@ -108,12 +110,21 @@ pub mod hypercolator {
             .ok_or(HypercolatorError::InvalidOraclePrice)?;
 
         let now_slot = Clock::get()?.slot;
+        let market_key = ctx.accounts.market_config.key();
+        let vault_base_key = ctx.accounts.vault_base.key();
+        let vault_quote_key = ctx.accounts.vault_quote.key();
         let state = &mut ctx.accounts.twap_state;
 
         if state.last_update_slot == 0 {
-            // First observation — initialise the accumulator.
-            state.market = ctx.accounts.market_config.key();
+            // First observation: validate mint and bind pool vaults.
+            require!(
+                ctx.accounts.vault_base.mint == ctx.accounts.market_config.token_mint,
+                HypercolatorError::InvalidOraclePrice
+            );
+            state.market = market_key;
             state.bump = ctx.bumps.twap_state;
+            state.base_vault = vault_base_key;
+            state.quote_vault = vault_quote_key;
             state.last_spot_q32 = spot_q32;
             state.last_update_slot = now_slot;
             state.window_start_slot = now_slot;
@@ -121,6 +132,11 @@ pub mod hypercolator {
             state.cumulative_price = 0;
             state.min_observation_slots = price_engine::TWAP_WINDOW_SLOTS;
         } else {
+            // Subsequent calls: enforce same vaults (vault substitution guard).
+            require!(
+                state.base_vault == vault_base_key && state.quote_vault == vault_quote_key,
+                HypercolatorError::PoolMismatch
+            );
             let elapsed = now_slot.saturating_sub(state.last_update_slot);
             let increment = (state.last_spot_q32 as u128)
                 .checked_mul(elapsed as u128)
@@ -132,7 +148,6 @@ pub mod hypercolator {
             state.last_spot_q32 = spot_q32;
             state.last_update_slot = now_slot;
 
-            // Slide window forward when the current window has fully elapsed.
             if now_slot.saturating_sub(state.window_start_slot)
                 >= price_engine::TWAP_WINDOW_SLOTS
             {
@@ -142,7 +157,7 @@ pub mod hypercolator {
         }
 
         emit!(TwapUpdated {
-            market: ctx.accounts.market_config.key(),
+            market: market_key,
             spot_q32,
             slot: now_slot,
         });
@@ -152,21 +167,23 @@ pub mod hypercolator {
 
     /// Trigger liquidation of an under-collateralised position.
     ///
-    /// Uses the TWAP price (not raw spot) to prevent manipulation: if the
-    /// keeper's reported spot deviates from the on-chain TWAP by more than
-    /// MAX_DEVIATION_BPS the instruction reverts. Full position accounting
-    /// (PnL settlement, insurance fund draw-down) is implemented in Task #13.
-    pub fn liquidate(
-        ctx: Context<Liquidate>,
-        reserve_a: u64,
-        reserve_b: u64,
-    ) -> Result<()> {
+    /// Reads current pool reserves directly from the bound AMM vault accounts
+    /// (verified against pubkeys stored in `TwapState`), then checks:
+    ///   1. TWAP window is warmed up.
+    ///   2. Pool has sufficient liquidity.
+    ///   3. Spot price has not pumped > 20% above TWAP (pump manipulation guard).
+    ///
+    /// Full position accounting (PnL, insurance fund) is implemented in Task #13.
+    pub fn liquidate(ctx: Context<Liquidate>) -> Result<()> {
         let now_slot = Clock::get()?.slot;
         let state = &ctx.accounts.twap_state;
 
         let twap_q32 = state
             .twap(now_slot)
             .ok_or(HypercolatorError::TwapWindowTooShort)?;
+
+        let reserve_a = ctx.accounts.vault_base.amount;
+        let reserve_b = ctx.accounts.vault_quote.amount;
 
         require!(
             price_engine::sufficient_liquidity(reserve_a, reserve_b),
@@ -280,6 +297,13 @@ pub struct UpdateTwap<'info> {
     )]
     pub twap_state: Account<'info, TwapState>,
 
+    /// AMM vault holding the base token (mint must equal market_config.token_mint
+    /// on first call; enforced via stored pubkey on subsequent calls).
+    pub vault_base: Account<'info, TokenAccount>,
+
+    /// AMM vault holding the quote token (e.g., USDC, WSOL).
+    pub vault_quote: Account<'info, TokenAccount>,
+
     pub system_program: Program<'info, System>,
 }
 
@@ -298,6 +322,14 @@ pub struct Liquidate<'info> {
         bump = twap_state.bump,
     )]
     pub twap_state: Account<'info, TwapState>,
+
+    /// Base token vault — Anchor verifies the address matches twap_state.base_vault.
+    #[account(address = twap_state.base_vault)]
+    pub vault_base: Account<'info, TokenAccount>,
+
+    /// Quote token vault — Anchor verifies the address matches twap_state.quote_vault.
+    #[account(address = twap_state.quote_vault)]
+    pub vault_quote: Account<'info, TokenAccount>,
 }
 
 // --- Inline unit tests ---
@@ -374,36 +406,34 @@ mod tests {
             min_observation_slots: min_slots,
             window_start_cumulative,
             window_start_slot,
+            base_vault: Pubkey::default(),
+            quote_vault: Pubkey::default(),
         }
     }
 
     #[test]
     fn twap_window_not_warmed_up() {
         let s = make_twap_state(500, 0, 100, 50);
-        // now_slot = 140 -> elapsed = 40 < min_slots 50
-        assert!(s.twap(140).is_none());
+        assert!(s.twap(140).is_none()); // elapsed = 40 < min_slots 50
     }
 
     #[test]
     fn twap_computes_correctly() {
-        // window started at slot 0, cumulative 0.
-        // At slot 100, cumulative = 1_000_000 (price 10_000 for 100 slots).
+        // window [0, 100]: cumulative = 1_000_000, delta = 1_000_000, twap = 10_000
         let s = make_twap_state(1_000_000, 0, 0, 50);
-        let twap = s.twap(100).unwrap();
-        assert_eq!(twap, 10_000);
+        assert_eq!(s.twap(100), Some(10_000));
     }
 
     #[test]
     fn twap_after_window_slide() {
-        // After a window slide: window_start = slot 1000, window_start_cumulative = 5_000_000.
-        // At slot 1100, cumulative = 6_100_000. delta = 1_100_000, elapsed = 100.
+        // window [1000, 1100]: delta = 6_100_000 - 5_000_000, twap = 11_000
         let s = make_twap_state(6_100_000, 5_000_000, 1000, 50);
-        let twap = s.twap(1100).unwrap();
-        assert_eq!(twap, 11_000);
+        assert_eq!(s.twap(1100), Some(11_000));
     }
 
     #[test]
     fn twap_state_space() {
-        assert_eq!(TwapState::SPACE, 105);
+        // 8 + 32 + 1 + 8 + 16 + 8 + 8 + 16 + 8 + 32 + 32 = 169
+        assert_eq!(TwapState::SPACE, 169);
     }
 }

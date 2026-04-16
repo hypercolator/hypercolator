@@ -28,6 +28,9 @@ pub enum HypercolatorError {
     #[msg("AMM pool liquidity is below the minimum required threshold")]
     InsufficientLiquidity,
 
+    #[msg("Vault accounts do not match the pool bound to this TWAP accumulator")]
+    PoolMismatch,
+
     // ---- Margin / Risk Engine ----
     #[msg("Invalid margin configuration: maintenance must be <= initial")]
     InvalidMarginConfig,

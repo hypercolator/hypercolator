@@ -260,9 +260,12 @@ impl MarketState {
 
 /// AMM TWAP accumulator for a market, PDA seeds = [b"twap", market_config].
 ///
-/// The keeper calls `update_twap` every slot, passing current AMM reserves.
-/// Price is stored in Q32 fixed-point (units of quote-per-base, scaled 2^32).
-/// TWAP is computed over the most recent `min_observation_slots` window.
+/// On the first `update_twap` call the base and quote vault pubkeys are stored
+/// here and validated on every subsequent call, binding this accumulator to a
+/// specific AMM pool and preventing vault substitution attacks.
+///
+/// Price is stored in Q32 fixed-point (quote-per-base, scaled by 2^32).
+/// TWAP is computed as a sliding window average over `min_observation_slots`.
 #[account]
 #[derive(Debug)]
 pub struct TwapState {
@@ -270,7 +273,7 @@ pub struct TwapState {
     pub market: Pubkey,
     /// PDA bump seed.
     pub bump: u8,
-    /// Last observed spot price in Q32 (price = reserve_b / reserve_a * 2^32).
+    /// Last observed spot price in Q32 (reserve_b / reserve_a * 2^32).
     pub last_spot_q32: u64,
     /// Cumulative sum of (spot_q32 * elapsed_slots) since initialisation.
     pub cumulative_price: u128,
@@ -282,6 +285,10 @@ pub struct TwapState {
     pub window_start_cumulative: u128,
     /// Slot at which the current TWAP window began.
     pub window_start_slot: u64,
+    /// SPL Token vault holding the base token (set on first update, immutable after).
+    pub base_vault: Pubkey,
+    /// SPL Token vault holding the quote token (set on first update, immutable after).
+    pub quote_vault: Pubkey,
 }
 
 impl TwapState {
@@ -293,7 +300,9 @@ impl TwapState {
         + 8   // last_update_slot
         + 8   // min_observation_slots
         + 16  // window_start_cumulative
-        + 8;  // window_start_slot
+        + 8   // window_start_slot
+        + 32  // base_vault
+        + 32; // quote_vault
 
     /// Compute the time-weighted average price over the current window.
     ///
