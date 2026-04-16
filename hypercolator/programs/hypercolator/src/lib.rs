@@ -116,10 +116,24 @@ pub mod hypercolator {
         let state = &mut ctx.accounts.twap_state;
 
         if state.last_update_slot == 0 {
-            // First observation: validate mint and bind pool vaults.
+            // First observation: only the market creator may bind the pool vaults.
+            // This prevents frontrunning by arbitrary keepers who could otherwise
+            // permanently lock in attacker-controlled token accounts as price sources.
+            require!(
+                ctx.accounts.keeper.key() == ctx.accounts.market_config.creator,
+                HypercolatorError::UnauthorizedPoolBinding
+            );
+            // Base vault mint must match the market's token.
             require!(
                 ctx.accounts.vault_base.mint == ctx.accounts.market_config.token_mint,
                 HypercolatorError::InvalidOraclePrice
+            );
+            // Vault authority must be off the Ed25519 curve, which means it is a
+            // program-derived address rather than a user wallet.  AMM pool vaults
+            // are always controlled by PDAs; user-owned token accounts are on-curve.
+            require!(
+                !ctx.accounts.vault_base.owner.is_on_curve(),
+                HypercolatorError::VaultAuthorityNotProgram
             );
             state.market = market_key;
             state.bump = ctx.bumps.twap_state;

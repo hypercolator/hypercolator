@@ -31,6 +31,12 @@ pub enum HypercolatorError {
     #[msg("Vault accounts do not match the pool bound to this TWAP accumulator")]
     PoolMismatch,
 
+    #[msg("Only the market creator may bind the AMM pool vaults on first update")]
+    UnauthorizedPoolBinding,
+
+    #[msg("Vault authority must be a program-derived address, not a user wallet")]
+    VaultAuthorityNotProgram,
+
     // ---- Margin / Risk Engine ----
     #[msg("Invalid margin configuration: maintenance must be <= initial")]
     InvalidMarginConfig,
